@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1590681254137.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3476032183",
+    "id" : "4C1EA244",
+    "lastKnownWriteTime" : 1590688109,
+    "last_content_update" : 1590688109994,
+    "path" : "D:/Research/Projects/many_analysts_jb/scripts/cleaning.R",
+    "project_path" : "scripts/cleaning.R",
+    "properties" : {
+        "cursorPosition" : "76,0",
+        "scrollLine" : "65"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
