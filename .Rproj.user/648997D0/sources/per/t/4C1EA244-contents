@@ -2,6 +2,8 @@
 library(tidyverse)
 library(performance)
 library(glmmTMB)
+library(MASS)
+library(sjPlot)
 
 #"How does grass cover influence Eucalyptus spp. seedling recruitment?" 
 
@@ -54,45 +56,41 @@ kruskal.test(data$Season, data$euc_sdlgs.2m)
 
 kruskal.test(data$Property, data$euc_sdlgs0_50cm)
 
-#just do small and large models
-library(glmmTMB)
+#are properties remeasured or independent between seasons?
+prop <- data %>% select(Property, Season) %>% group_by(Property, Season) %>% distinct()
 
-m1 <- glmmTMB(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover + ExoticAnnualGrass_cover + (1|Property) + (1|Season), family= "poisson", data)
+#there's a lot of zeroes, how many?
+sum(data$euc_sdlgs0_50cm == 0)
+sum(data$euc_sdlgs50cm.2m == 0)
+
+#that's a lot of zeros - let's do a logistic regression instead 
+
+
+
+
+#small size models
+m1 <- glmmTMB(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover + ExoticAnnualGrass_cover + (1|Property), family= "poisson", data)
 summary(m1)
 check_overdispersion(m1)
-check_zeroinflation(m1)
+#overdispersed
+#models with both property and precipitation break
 
-m1.nb <- glmmTMB(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation +ExoticAnnualGrass_cover*annual.precipi + NativePerennialGrass_cover + NativePerennialGraminoid_cover + (1|Property), family= "nbinom2", data)
-check_overdispersion(m1.nb)
+m1 <- glm(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation*ExoticAnnualGrass_cover, family = "poisson", data = data)
+check_overdispersion(m1)
 
-AIC(m1, m1.nb)
-
-
-library(MASS)
-m1 <- glm.nb(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation*ExoticAnnualGrass_cover + NativePerennialGrass_cover*NativePerennialGraminoid_cover*annual_precipitation, data)
-m2 <- glm(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation*ExoticAnnualGrass_cover + NativePerennialGrass_cover*NativePerennialGraminoid_cover*annual_precipitation, family = "poisson", data)
-
+m2 <- glm.nb(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation +ExoticAnnualGrass_cover*annual_precipitation + NativePerennialGrass_cover*annual_precipitation +NativePerennialGraminoid_cover*annual_precipitation, data = data)
 summary(m2)
 
-m2 <- glmmTMB(euc_sdlgs.2m ~ ExoticPerennialGrass_cover + ExoticAnnualGrass_cover + (1|Property), family= "poisson", data)
-m2.nb <- glmmTMB(euc_sdlgs.2m ~ ExoticPerennialGrass_cover + ExoticAnnualGrass_cover + NativePerennialGrass_cover + NativePerennialGraminoid_cover + (1|Property), family= "nbinom2", data)
-AIC(m2, m2.nb)
-summary(m2.nb)
-
-
-m3 <- glmmTMB(euc_sdlgs.2m ~ NativePerennialGrass_cover + Euc_canopy_cover+  (1|Property), family= "nbinom2", data)
+#try a 3-way interaction of significant terms
+m3 <- glm.nb(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation*ExoticAnnualGrass_cover+ NativePerennialGrass_cover +NativePerennialGraminoid_cover, data = data)
 summary(m3)
 
-
-m4 <- glmmTMB(euc_sdlgs50cm.2m ~ ExoticPerennialGrass_cover*annual_precipitation  +(1|Property), family= "nbinom2", data)
+m4 <- glm.nb(euc_sdlgs0_50cm ~ ExoticPerennialGrass_cover*annual_precipitation + ExoticAnnualGrass_cover*annual_precipitation + NativePerennialGrass_cover +NativePerennialGraminoid_cover, data = data)
 summary(m4)
 
+AIC(m1, m2, m3, m4)
 
-m.q <- glm(euc_sdlgs50cm.2m ~ ExoticPerennialGrass_cover*annual_precipitation, family = quasipoisson, data = data) 
-
-summary(m.q)
-shapiro.test(data$Euc_canopy_cover)
-
+plot_model(m4, "pred", terms =  c("ExoticPerennialGrass_cover", "annual_precipitation"))
 
 #reproducability
 version
