@@ -1,7 +1,6 @@
 #this script cleans and reshapes data for analysis
 library(tidyverse)
 library(performance)
-library(glmmTMB)
 library(MASS)
 library(sjPlot)
 
@@ -61,9 +60,40 @@ prop <- data %>% select(Property, Season) %>% group_by(Property, Season) %>% dis
 
 #there's a lot of zeroes, how many?
 sum(data$euc_sdlgs0_50cm == 0)
-sum(data$euc_sdlgs50cm.2m == 0)
+sum(data$euc_sdlgs.2m != 0)
 
 #that's a lot of zeros - let's do a logistic regression instead 
+
+data <- mutate(data, small_bin = ifelse(euc_sdlgs0_50cm == 0,0, 1))
+data <- mutate(data, med_bin = ifelse(euc_sdlgs50cm.2m == 0,0, 1))
+data <- mutate(data, large_bin = ifelse(euc_sdlgs.2m == 0,0, 1))
+data <- mutate(data, all = euc_sdlgs0_50cm + euc_sdlgs50cm.2m + euc_sdlgs.2m)
+
+sum(data$all == 0)
+
+m1.all <- glm(small_bin ~ ExoticPerennialGrass_cover*annual_precipitation +ExoticAnnualGrass_cover*annual_precipitation + NativePerennialGrass_cover*annual_precipitation +NativePerennialGraminoid_cover*annual_precipitation, family = binomial(), data = data)
+summary(m1.all)
+m1 <- glm(small_bin ~ ExoticPerennialGrass_cover+annual_precipitation +ExoticAnnualGrass_cover + NativePerennialGrass_cover +NativePerennialGraminoid_cover + Property, family = binomial(), data = data)
+summary(m1)
+car::Anova(m1, type = 2, test = "LR")
+AIC(m1.all, m1)
+
+m2.all <- glm(large_bin ~ ExoticPerennialGrass_cover*annual_precipitation +ExoticAnnualGrass_cover*annual_precipitation + NativePerennialGrass_cover*annual_precipitation +NativePerennialGraminoid_cover*annual_precipitation + Property, family = binomial(), data = data)
+summary(m2.all)
+
+library(glmmTMB)
+m2 <-  glm(large_bin ~ ExoticPerennialGrass_cover +ExoticAnnualGrass_cover + NativePerennialGrass_cover*annual_precipitation +NativePerennialGraminoid_cover, family = binomial(), data = data)
+summary(m2)
+
+m3 <- glmmTMB(large_bin ~ ExoticPerennialGrass_cover +ExoticAnnualGrass_cover + NativePerennialGrass_cover +NativePerennialGraminoid_cover + (1|Property), family = binomial(), data = data)
+
+summary(m3)
+AIC(m2.all, m2)
+
+
+plot_model(m2, "int")
+
+
 
 
 
